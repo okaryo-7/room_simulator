@@ -1432,18 +1432,44 @@ function readImportOptions() {
   };
 }
 
+const IMAGE_EXT = /\.(jpe?g|png|gif|webp|bmp|avif|heic|heif)$/i;
+const HEIC = /\.(heic|heif)$/i;
+
 async function openImport(file) {
-  if (!file || !file.type.startsWith('image/')) {
-    toast('画像ファイルを選んでください');
+  if (!file) return;
+  const isHeic = HEIC.test(file.name) || /image\/hei[cf]/.test(file.type);
+  if (!file.type.startsWith('image/') && !IMAGE_EXT.test(file.name)) {
+    toast(`画像ファイルではないようです（${file.name}）。JPEG / PNG などを選んでください`, 5000);
     return;
   }
   try {
-    imp.src = await loadImageFile(file);
+    toast('画像を読み込んでいます…', 10000);
+    const source = isHeic ? await heicToJpeg(file) : file;
+    imp.src = await loadImageFile(source);
   } catch (err) {
-    toast(err.message);
+    console.error(err);
+    toast(isHeic
+      ? 'HEIC 画像を変換できませんでした。写真アプリなどで JPEG に変換してから読み込んでください'
+      : `画像を読み込めませんでした（${file.name}）`, 6000);
     return;
   }
+  $('toast').hidden = true;
   startImport();
+}
+
+/** iPhone の HEIC 写真はブラウザが直接表示できないので、変換ライブラリを必要なときだけ読み込む */
+async function heicToJpeg(file) {
+  if (!window.heic2any) {
+    await new Promise((resolve, reject) => {
+      const sc = document.createElement('script');
+      sc.src = 'https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
+      sc.onload = resolve;
+      sc.onerror = () => reject(new Error('heic2any を読み込めませんでした'));
+      document.head.appendChild(sc);
+    });
+  }
+  const out = await window.heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
+  return Array.isArray(out) ? out[0] : out;
 }
 
 function startImport() {
@@ -1480,7 +1506,6 @@ function scheduleImportPreview() {
 }
 
 function bindImport() {
-  $('btnImport').addEventListener('click', () => $('fileInput').click());
   $('fileInput').addEventListener('change', (e) => {
     const f = e.target.files[0];
     e.target.value = '';
@@ -1513,15 +1538,24 @@ function bindImport() {
     toast('長さの分かる壁をドラッグして「縮尺合わせ」をしましょう', 5000);
   });
 
-  // ドラッグ＆ドロップ
+  // ドラッグ＆ドロップ（画面のどこに落としても受け付ける。ブラウザが画像を開いてしまうのを防ぐ）
   const wrap = document.querySelector('.stage-wrap');
-  wrap.addEventListener('dragover', (e) => { e.preventDefault(); wrap.classList.add('dragover'); });
-  wrap.addEventListener('dragleave', () => wrap.classList.remove('dragover'));
-  wrap.addEventListener('drop', (e) => {
+  const hasFiles = (e) => [...(e.dataTransfer?.types || [])].includes('Files');
+  window.addEventListener('dragover', (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    wrap.classList.add('dragover');
+  });
+  window.addEventListener('dragleave', (e) => {
+    if (!e.relatedTarget) wrap.classList.remove('dragover');
+  });
+  window.addEventListener('drop', (e) => {
+    if (!hasFiles(e)) return;
     e.preventDefault();
     wrap.classList.remove('dragover');
     const f = e.dataTransfer.files[0];
-    if (f && f.name.endsWith('.json')) loadJsonFile(f);
+    if (f && /\.json$/i.test(f.name)) loadJsonFile(f);
     else openImport(f);
   });
   // クリップボードから画像を貼り付け
