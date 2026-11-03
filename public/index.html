@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>家具配置シミュレータ</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="toolbar">
+    <div class="brand">家具配置シミュレータ</div>
+
+    <div class="group">
+      <button id="btnImport" class="primary" title="間取り図の写真を読み込む">間取り図を読み込む</button>
+      <input id="fileInput" type="file" accept="image/*" hidden>
+    </div>
+
+    <div class="group" id="toolGroup">
+      <button data-tool="select" class="tool active" title="選択・移動 (V)">選択</button>
+      <button data-tool="measure" class="tool" title="2点間の距離を測る (M)">計測</button>
+      <button data-tool="calibrate" class="tool" title="既知の長さを指定して縮尺を合わせる">縮尺合わせ</button>
+      <button data-tool="wall" class="tool" title="間取りに壁を描き足す (W)">壁ペン</button>
+      <button data-tool="erase" class="tool" title="間取りの不要部分を消す (E)">消しゴム</button>
+      <label class="brush" id="brushBox" hidden>太さ <input id="brushSize" type="range" min="2" max="60" value="10"></label>
+    </div>
+
+    <div class="group">
+      <button id="btnUndo" title="元に戻す (Ctrl+Z)">↶</button>
+      <button id="btnRedo" title="やり直す (Ctrl+Y)">↷</button>
+    </div>
+
+    <div class="group">
+      <label class="check"><input id="chkGrid" type="checkbox" checked> グリッド</label>
+      <label class="check"><input id="chkSnap" type="checkbox" checked> スナップ</label>
+      <label class="check"><input id="chkOverlap" type="checkbox" checked> 重なり警告</label>
+      <label class="check"><input id="chkDims" type="checkbox" checked> 寸法表示</label>
+    </div>
+
+    <div class="group">
+      <label class="check">元画像
+        <input id="origOpacity" type="range" min="0" max="100" value="0" title="元の写真を重ねて表示">
+      </label>
+    </div>
+
+    <div class="group right">
+      <button id="btnFit" title="全体を表示 (F)">全体表示</button>
+      <button id="btnSave" title="レイアウトをJSONファイルに保存">保存</button>
+      <button id="btnLoad" title="JSONファイルからレイアウトを読み込み">開く</button>
+      <input id="jsonInput" type="file" accept=".json,application/json" hidden>
+      <button id="btnPng" title="PNG画像として書き出し">画像出力</button>
+      <button id="btnHelp" title="操作方法">？</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="panel left">
+      <section>
+        <h2>図形</h2>
+        <div class="shape-grid">
+          <button class="shape-btn" data-shape="rect"><span class="ico ico-rect"></span>四角</button>
+          <button class="shape-btn" data-shape="ellipse"><span class="ico ico-ellipse"></span>円・楕円</button>
+          <button class="shape-btn" data-shape="triangle"><span class="ico ico-tri"></span>三角</button>
+          <button class="shape-btn" data-shape="lshape"><span class="ico ico-l"></span>L字</button>
+          <button class="shape-btn" data-shape="door"><span class="ico ico-door"></span>ドア開閉</button>
+          <button class="shape-btn" data-shape="text"><span class="ico ico-text">A</span>文字</button>
+        </div>
+      </section>
+      <section class="presets">
+        <h2>家具プリセット <small>(cm)</small></h2>
+        <input id="presetFilter" type="search" placeholder="絞り込み…">
+        <div id="presetList"></div>
+      </section>
+      <section>
+        <h2>自作プリセット</h2>
+        <div id="customPresetList" class="hint">選択中の家具を「プリセットに追加」で登録できます</div>
+      </section>
+    </aside>
+
+    <div class="stage-wrap">
+      <canvas id="stage"></canvas>
+      <div id="modeHint" class="mode-hint" hidden></div>
+      <div id="emptyHint" class="empty-hint">
+        <p>まずは「間取り図を読み込む」から写真を選んでください</p>
+        <p class="sub">写真がなくても、図形や家具をそのまま配置できます<br>（画像はドラッグ＆ドロップでも読み込めます）</p>
+      </div>
+      <div class="statusbar">
+        <span id="statusZoom">100%</span>
+        <span id="statusScale"></span>
+        <span id="statusCursor"></span>
+      </div>
+    </div>
+
+    <aside class="panel right">
+      <section id="propsEmpty">
+        <h2>プロパティ</h2>
+        <p class="hint">家具を選択すると、名前・サイズ・色などを編集できます。</p>
+      </section>
+      <section id="props" hidden>
+        <h2>プロパティ <small id="propCount"></small></h2>
+        <label>名前 <input id="pLabel" type="text"></label>
+        <div class="row2">
+          <label>幅 (cm) <input id="pW" type="number" min="1" step="1"></label>
+          <label>奥行 (cm) <input id="pH" type="number" min="1" step="1"></label>
+        </div>
+        <div class="row2">
+          <label>X (cm) <input id="pX" type="number" step="1"></label>
+          <label>Y (cm) <input id="pY" type="number" step="1"></label>
+        </div>
+        <label>回転 (°)
+          <div class="row-inline">
+            <input id="pRot" type="number" step="1">
+            <button id="btnRotL" title="左に90°回転">⟲90</button>
+            <button id="btnRotR" title="右に90°回転 (R)">⟳90</button>
+          </div>
+        </label>
+        <div class="row2">
+          <label>色 <input id="pColor" type="color"></label>
+          <label>不透明度 <input id="pOpacity" type="range" min="10" max="100"></label>
+        </div>
+        <label>文字サイズ <input id="pFont" type="range" min="6" max="40"></label>
+        <label>メモ <textarea id="pNote" rows="2" placeholder="購入予定、色など"></textarea></label>
+        <label class="check"><input id="pLock" type="checkbox"> 位置をロック</label>
+        <label class="check"><input id="pIgnore" type="checkbox"> 重なり判定から除外（ラグ等）</label>
+        <div class="btn-row">
+          <button id="btnDup" title="複製 (Ctrl+D)">複製</button>
+          <button id="btnFront" title="最前面へ">前面へ</button>
+          <button id="btnBack" title="最背面へ">背面へ</button>
+          <button id="btnAddPreset">プリセットに追加</button>
+          <button id="btnDelete" class="danger" title="削除 (Delete)">削除</button>
+        </div>
+      </section>
+
+      <section>
+        <h2>配置中の家具 <small id="itemCount"></small></h2>
+        <ul id="itemList" class="item-list"></ul>
+      </section>
+
+      <section>
+        <h2>レイアウト案</h2>
+        <div class="row-inline">
+          <select id="layoutSelect"></select>
+          <button id="btnLayoutNew" title="現在の配置を複製して新しい案を作る">複製</button>
+          <button id="btnLayoutRename" title="名前を変更">名前</button>
+          <button id="btnLayoutDel" class="danger" title="この案を削除">削除</button>
+        </div>
+        <p class="hint">ブラウザに自動保存されます。</p>
+      </section>
+    </aside>
+  </main>
+
+  <!-- 間取り図の読み込み・文字除去 -->
+  <div id="importModal" class="modal" hidden>
+    <div class="modal-box wide">
+      <h2>間取り図の取り込み</h2>
+      <p class="hint">太い線（壁）だけを残し、文字や細い線を取り除きます。スライダーで調整してください。</p>
+      <div class="import-body">
+        <div class="previews">
+          <figure><figcaption>元画像</figcaption><canvas id="prevOrig"></canvas></figure>
+          <figure><figcaption>処理結果</figcaption><canvas id="prevOut"></canvas></figure>
+        </div>
+        <div class="import-controls">
+          <label>暗さのしきい値 <output id="oThresh"></output>
+            <input id="sThresh" type="range" min="20" max="240" value="120">
+            <span class="hint">壁が消える → 上げる / 床の色が残る → 下げる</span>
+          </label>
+          <label>壁の最小太さ (px) <output id="oWall"></output>
+            <input id="sWall" type="range" min="1" max="25" value="5">
+            <span class="hint">文字が残る → 上げる / 壁が途切れる → 下げる</span>
+          </label>
+          <label>小さなゴミ除去 <output id="oSpeck"></output>
+            <input id="sSpeck" type="range" min="0" max="3000" step="10" value="200">
+            <span class="hint">この面積(px)以下の塊を消します</span>
+          </label>
+          <label>壁の補強（太らせる） <output id="oGrow"></output>
+            <input id="sGrow" type="range" min="0" max="6" value="0">
+          </label>
+          <label class="check"><input id="cInvert" type="checkbox"> 明暗を反転（黒背景の図面用）</label>
+          <label class="check"><input id="cRaw" type="checkbox"> 文字除去をしない（そのまま使う）</label>
+          <p class="hint">取り込み後も「壁ペン」「消しゴム」で修正できます。次に「縮尺合わせ」で実寸に合わせましょう。</p>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <span id="importBusy" class="busy" hidden>処理中…</span>
+        <button id="btnImportCancel">キャンセル</button>
+        <button id="btnImportOk" class="primary">この間取りを使う</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 汎用入力ダイアログ -->
+  <div id="promptModal" class="modal" hidden>
+    <div class="modal-box">
+      <h2 id="promptTitle"></h2>
+      <p id="promptText" class="hint"></p>
+      <div class="row-inline"><input id="promptInput" type="text"><span id="promptUnit"></span></div>
+      <div class="modal-actions">
+        <button id="promptCancel">キャンセル</button>
+        <button id="promptOk" class="primary">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="helpModal" class="modal" hidden>
+    <div class="modal-box">
+      <h2>操作方法</h2>
+      <table class="help">
+        <tr><td>空白をドラッグ / 中ボタン / Space+ドラッグ</td><td>画面の平行移動</td></tr>
+        <tr><td>ホイール</td><td>ズームイン・アウト（カーソル位置中心）</td></tr>
+        <tr><td>図形・プリセットをクリック</td><td>画面中央に配置（ドラッグで好きな場所へ）</td></tr>
+        <tr><td>家具をドラッグ</td><td>移動（Shift+クリックで複数選択）</td></tr>
+        <tr><td>四隅の□ / 上の○</td><td>サイズ変更 / 回転（Shiftで15°刻み）</td></tr>
+        <tr><td>ダブルクリック</td><td>名前を編集</td></tr>
+        <tr><td>矢印キー</td><td>1cm移動（Shiftで10cm）</td></tr>
+        <tr><td>R / Shift+R</td><td>90°回転</td></tr>
+        <tr><td>Ctrl+C / Ctrl+V / Ctrl+D</td><td>コピー / 貼り付け / 複製</td></tr>
+        <tr><td>Delete</td><td>削除</td></tr>
+        <tr><td>Ctrl+Z / Ctrl+Y</td><td>元に戻す / やり直し</td></tr>
+        <tr><td>V / M / W / E / F</td><td>選択 / 計測 / 壁ペン / 消しゴム / 全体表示</td></tr>
+        <tr><td>Esc</td><td>選択解除・ツールを選択に戻す</td></tr>
+      </table>
+      <h3>おすすめの手順</h3>
+      <ol>
+        <li>「間取り図を読み込む」で写真を選び、文字が消えるように調整</li>
+        <li>「縮尺合わせ」で、長さが分かる壁の両端をクリックして実寸を入力</li>
+        <li>家具プリセットを置き、サイズを自分の家具に合わせて変更</li>
+        <li>赤い枠は家具同士・ドア開閉範囲との重なりです</li>
+      </ol>
+      <div class="modal-actions"><button id="btnHelpClose" class="primary">閉じる</button></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
