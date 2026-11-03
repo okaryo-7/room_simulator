@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "room-simulator", "runtimeExecutable": "node", "runtimeArgs": ["server.js"], "port": 5173 }
+  ]
+}
