@@ -11,6 +11,7 @@ npm start
 ```
 
 ブラウザで http://localhost:5173 を開きます。
+（サーバーを起動せず `public/index.html` をダブルクリックで開いても動きます）
 
 ## 主な機能
 

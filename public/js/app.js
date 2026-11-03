@@ -1,9 +1,5 @@
-import { PRESET_CATEGORIES, SHAPE_DEFAULTS } from './presets.js';
-import {
-  toLocal, toWorld, localOutline, hitTest, itemsOverlap, bounds, lArm,
-} from './geometry.js';
-import { loadImageFile, luminance, extractWalls, maskToCanvas } from './planProcess.js';
-import { saveProject, loadProject, dataUrlToCanvas, downloadBlob } from './storage.js';
+// presets.js / geometry.js / planProcess.js / storage.js を先に通常の <script> で読み込んでおくこと
+// （ES モジュールにしないのは、index.html を直接開いた file:// でも動かすため）
 
 // ============================================================
 // 状態
@@ -1716,6 +1712,7 @@ function bindToolbar() {
 // 起動
 // ============================================================
 async function init() {
+  $('scriptError').hidden = true;
   bindToolbar();
   bindProps();
   bindLayouts();

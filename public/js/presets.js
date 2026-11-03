@@ -1,5 +1,5 @@
 // 家具プリセット（サイズは cm、w = 幅, h = 奥行）。一般的な目安の寸法。
-export const PRESET_CATEGORIES = [
+const PRESET_CATEGORIES = [
   {
     name: '水回り・家電',
     items: [
@@ -69,7 +69,7 @@ export const PRESET_CATEGORIES = [
   },
 ];
 
-export const SHAPE_DEFAULTS = {
+const SHAPE_DEFAULTS = {
   rect: { label: '四角', w: 80, h: 60, color: '#9fb4d6' },
   ellipse: { label: '円', w: 60, h: 60, color: '#a8d0b0' },
   triangle: { label: '三角', w: 60, h: 60, color: '#d6b49f' },

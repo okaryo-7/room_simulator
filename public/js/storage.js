@@ -12,7 +12,7 @@ function openDb() {
   });
 }
 
-export async function saveProject(project) {
+async function saveProject(project) {
   const db = await openDb();
   await new Promise((resolve, reject) => {
     const tx = db.transaction(STORE, 'readwrite');
@@ -23,7 +23,7 @@ export async function saveProject(project) {
   db.close();
 }
 
-export async function loadProject() {
+async function loadProject() {
   const db = await openDb();
   const value = await new Promise((resolve, reject) => {
     const req = db.transaction(STORE).objectStore(STORE).get(KEY);
@@ -34,7 +34,7 @@ export async function loadProject() {
   return value || null;
 }
 
-export function dataUrlToCanvas(url) {
+function dataUrlToCanvas(url) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
@@ -49,7 +49,7 @@ export function dataUrlToCanvas(url) {
   });
 }
 
-export function downloadBlob(blob, filename) {
+function downloadBlob(blob, filename) {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = filename;

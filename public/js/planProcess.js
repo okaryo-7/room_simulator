@@ -7,10 +7,10 @@
 //   4. 小さな連結成分（残った太字や点）を除去
 //   5. 任意で壁を少し太らせる
 
-export const MAX_DIM = 2000;
+const MAX_DIM = 2000;
 
 /** File/Blob を読み込み、長辺 MAX_DIM 以下に縮小した canvas を返す */
-export async function loadImageFile(file) {
+async function loadImageFile(file) {
   const url = URL.createObjectURL(file);
   try {
     const img = await new Promise((resolve, reject) => {
@@ -25,7 +25,7 @@ export async function loadImageFile(file) {
   }
 }
 
-export function imageToCanvas(img, maxDim = MAX_DIM) {
+function imageToCanvas(img, maxDim = MAX_DIM) {
   const s = Math.min(1, maxDim / Math.max(img.naturalWidth || img.width, img.naturalHeight || img.height));
   const w = Math.max(1, Math.round((img.naturalWidth || img.width) * s));
   const h = Math.max(1, Math.round((img.naturalHeight || img.height) * s));
@@ -40,7 +40,7 @@ export function imageToCanvas(img, maxDim = MAX_DIM) {
 }
 
 /** canvas から輝度配列 (0-255) を作る */
-export function luminance(canvas) {
+function luminance(canvas) {
   const { width: w, height: h } = canvas;
   const d = canvas.getContext('2d').getImageData(0, 0, w, h).data;
   const lum = new Float32Array(w * h);
@@ -182,7 +182,7 @@ function removeSmall(mask, w, h, minArea) {
  * @param {Float32Array} [lumCache] 同じ画像で何度も処理するときの輝度キャッシュ
  * @returns {Uint8Array} 1 = 壁
  */
-export function extractWalls(src, opt, lumCache) {
+function extractWalls(src, opt, lumCache) {
   const w = src.width, h = src.height;
   let lum = lumCache || luminance(src);
   if (opt.flatten) lum = flattenLighting(lum, w, h);
@@ -203,7 +203,7 @@ export function extractWalls(src, opt, lumCache) {
 }
 
 /** マスクを「壁色・背景透明」の canvas に描く */
-export function maskToCanvas(mask, w, h, color = [52, 56, 64], target) {
+function maskToCanvas(mask, w, h, color = [52, 56, 64], target) {
   const c = target || document.createElement('canvas');
   c.width = w;
   c.height = h;

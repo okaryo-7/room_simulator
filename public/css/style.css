@@ -48,6 +48,14 @@ input[type=text], input[type=number], input[type=search], select, textarea {
 }
 textarea { resize: vertical; }
 
+.script-error {
+  padding: 10px 14px;
+  background: #fde8e8;
+  color: #9b1c1c;
+  border-bottom: 1px solid #f5b5b5;
+  line-height: 1.6;
+}
+
 /* ---------- toolbar ---------- */
 .toolbar {
   min-height: 48px;

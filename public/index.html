@@ -7,6 +7,11 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+  <!-- スクリプトが動けば app.js が消す。残っていれば読み込みに失敗している -->
+  <div id="scriptError" class="script-error">
+    アプリのプログラムを読み込めませんでした。ブラウザを再読み込み（Ctrl+F5）してください。
+    直らない場合は、このフォルダで <code>npm start</code> を実行して <b>http://localhost:5173</b> を開いてください。
+  </div>
   <header class="toolbar">
     <div class="brand">家具配置シミュレータ</div>
 
@@ -232,6 +237,10 @@
 
   <div id="toast" class="toast" hidden></div>
 
-  <script type="module" src="js/app.js"></script>
+  <script src="js/presets.js"></script>
+  <script src="js/geometry.js"></script>
+  <script src="js/planProcess.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/app.js"></script>
 </body>
 </html>

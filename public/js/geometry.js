@@ -4,24 +4,24 @@
 const DEG = Math.PI / 180;
 
 /** ワールド座標 → 家具ローカル座標（中心原点、回転なし） */
-export function toLocal(item, px, py) {
+function toLocal(item, px, py) {
   const dx = px - item.x, dy = py - item.y;
   const c = Math.cos(-item.rot * DEG), s = Math.sin(-item.rot * DEG);
   return { x: dx * c - dy * s, y: dx * s + dy * c };
 }
 
-export function toWorld(item, lx, ly) {
+function toWorld(item, lx, ly) {
   const c = Math.cos(item.rot * DEG), s = Math.sin(item.rot * DEG);
   return { x: item.x + lx * c - ly * s, y: item.y + lx * s + ly * c };
 }
 
 /** L字の腕の太さ（短辺の 45%） */
-export function lArm(item) {
+function lArm(item) {
   return Math.min(item.w, item.h) * 0.45;
 }
 
 /** ローカル座標での形状の輪郭（描画・判定共用） */
-export function localOutline(item) {
+function localOutline(item) {
   const hw = item.w / 2, hh = item.h / 2;
   switch (item.shape) {
     case 'ellipse': {
@@ -56,7 +56,7 @@ export function localOutline(item) {
 }
 
 /** 重なり判定用の凸多角形群（L字は2つの長方形に分割）ワールド座標 */
-export function convexParts(item) {
+function convexParts(item) {
   const hw = item.w / 2, hh = item.h / 2;
   let parts;
   if (item.shape === 'lshape') {
@@ -71,12 +71,12 @@ export function convexParts(item) {
   return parts.map((poly) => poly.map((p) => toWorld(item, p.x, p.y)));
 }
 
-export function worldOutline(item) {
+function worldOutline(item) {
   return localOutline(item).map((p) => toWorld(item, p.x, p.y));
 }
 
 /** 点が家具の内側にあるか */
-export function hitTest(item, px, py) {
+function hitTest(item, px, py) {
   const p = toLocal(item, px, py);
   const hw = item.w / 2, hh = item.h / 2;
   if (item.shape === 'ellipse') {
@@ -88,7 +88,7 @@ export function hitTest(item, px, py) {
   return pointInPoly(p, localOutline(item));
 }
 
-export function pointInPoly(p, poly) {
+function pointInPoly(p, poly) {
   let inside = false;
   for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
     const a = poly[i], b = poly[j];
@@ -116,14 +116,14 @@ function convexOverlap(A, B) {
   return true;
 }
 
-export function itemsOverlap(a, b) {
+function itemsOverlap(a, b) {
   const pa = convexParts(a), pb = convexParts(b);
   for (const x of pa) for (const y of pb) if (convexOverlap(x, y)) return true;
   return false;
 }
 
 /** 回転後の外接矩形（ワールド） */
-export function bounds(item) {
+function bounds(item) {
   const pts = worldOutline(item);
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const p of pts) {
