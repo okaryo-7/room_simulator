@@ -473,17 +473,26 @@ function drawLabel(g, it, z) {
   const dims = ui.dims && it.shape !== 'text' ? `${round1(it.w)}×${round1(it.h)}` : '';
   if (!label && !dims) return;
 
-  // 文字が逆さまにならないように
-  let rot = ((it.rot % 360) + 360) % 360;
   g.save();
-  if (rot > 90 && rot <= 270) g.rotate(Math.PI);
+  // 文字の中心位置（家具ローカル座標）
+  let cx = 0, cy = 0;
+  if (it.shape === 'lshape') cx = -it.w / 2 + lArm(it) / 2;
+  if (it.shape === 'triangle') cy = it.h * 0.15;
+  if (it.shape === 'door') { cx = -it.w * 0.1; cy = it.h * 0.15; }
+  g.translate(cx, cy);
 
-  // 縦長で横書きが入りきらない時は長辺方向に回す
-  let boxW = it.w, boxH = it.h;
+  // 画面上でなるべく水平に読めるよう、90°単位で回し戻す
+  const rot = ((it.rot % 360) + 360) % 360;
+  const quarter = Math.round(rot / 90) % 4;
+  g.rotate((-quarter * Math.PI) / 2);
+  let boxW = quarter % 2 ? it.h : it.w;
+  let boxH = quarter % 2 ? it.w : it.h;
+
   let fs = it.font || 12;
   g.font = `600 ${fs}px "Hiragino Sans","Yu Gothic UI","Meiryo",sans-serif`;
   const tw = g.measureText(label).width;
-  if (it.shape !== 'text' && tw > boxW * 0.9 && boxH > boxW * 1.2) {
+  // 横書きが入りきらず、縦の方が長いときは縦向きに
+  if (it.shape !== 'text' && it.shape !== 'lshape' && tw > boxW * 0.9 && boxH > boxW * 1.2) {
     g.rotate(-Math.PI / 2);
     [boxW, boxH] = [boxH, boxW];
   }
@@ -492,23 +501,18 @@ function drawLabel(g, it, z) {
   // 画面上で小さすぎる文字は少なくとも 9px に
   fs = Math.max(fs, 9 / z);
 
-  const color = it.shape === 'text' ? it.color : textColorFor(it.color);
-  g.fillStyle = color;
+  g.fillStyle = it.shape === 'text' ? it.color : textColorFor(it.color);
   g.textAlign = 'center';
   g.textBaseline = 'middle';
-  let cx = 0, cy = 0;
-  if (it.shape === 'lshape') { cx = -it.w / 2 + lArm(it) / 2; cy = 0; }
-  if (it.shape === 'triangle') cy = it.h * 0.15;
-  if (it.shape === 'door') { cx = -it.w * 0.1; cy = it.h * 0.15; }
 
   g.font = `600 ${fs}px "Hiragino Sans","Yu Gothic UI","Meiryo",sans-serif`;
   const dfs = Math.max(fs * 0.72, 8 / z);
   const hasBoth = label && dims;
-  if (label) g.fillText(label, cx, cy - (hasBoth ? dfs * 0.55 : 0));
+  if (label) g.fillText(label, 0, hasBoth ? -dfs * 0.55 : 0);
   if (dims) {
     g.font = `${dfs}px sans-serif`;
     g.globalAlpha = 0.75;
-    g.fillText(dims, cx, cy + (hasBoth ? fs * 0.6 : 0));
+    g.fillText(dims, 0, hasBoth ? fs * 0.6 : 0);
   }
   g.restore();
 }
@@ -516,9 +520,13 @@ function drawLabel(g, it, z) {
 function handlePoints(it) {
   const hw = it.w / 2, hh = it.h / 2;
   const list = [];
+  // 画面上で小さい家具は辺のハンドルを出さない（本体をつかみやすくするため）
+  const showEdgeX = it.h * view.zoom >= 50, showEdgeY = it.w * view.zoom >= 50;
   for (const sx of [-1, 0, 1]) {
     for (const sy of [-1, 0, 1]) {
       if (!sx && !sy) continue;
+      if (!sy && !showEdgeX) continue;
+      if (!sx && !showEdgeY) continue;
       list.push({ sx, sy, ...toWorld(it, sx * hw, sy * hh) });
     }
   }
@@ -611,6 +619,11 @@ function viewCenterWorld() {
 
 function addItem(spec, at) {
   const c = at || viewCenterWorld();
+  // 同じ場所に続けて置くときは少しずらす
+  while (items.some((i) => Math.abs(i.x - Math.round(c.x)) < 1 && Math.abs(i.y - Math.round(c.y)) < 1)) {
+    c.x += 20;
+    c.y += 20;
+  }
   const shape = spec.shape || 'rect';
   const it = {
     id: uid(),

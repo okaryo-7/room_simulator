@@ -14,7 +14,9 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); }
+body { display: flex; flex-direction: column; }
 
 button {
   font: inherit;
@@ -46,11 +48,12 @@ textarea { resize: vertical; }
 
 /* ---------- toolbar ---------- */
 .toolbar {
-  height: 48px;
+  min-height: 48px;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 14px;
-  padding: 0 12px;
+  gap: 6px 14px;
+  padding: 6px 12px;
   background: var(--panel);
   border-bottom: 1px solid var(--border);
 }
@@ -65,7 +68,8 @@ textarea { resize: vertical; }
 .layout {
   display: grid;
   grid-template-columns: 230px 1fr 270px;
-  height: calc(100% - 48px);
+  flex: 1;
+  min-height: 0;
 }
 .panel {
   background: var(--panel);
@@ -232,4 +236,14 @@ input[type=range] { width: 100%; }
   padding: 8px 16px;
   border-radius: 6px;
   z-index: 100;
+}
+
+/* ---------- 狭い画面 ---------- */
+@media (max-width: 1100px) {
+  .layout { grid-template-columns: 190px 1fr 220px; }
+  .import-body { grid-template-columns: 1fr; }
+}
+@media (max-width: 760px) {
+  .layout { grid-template-columns: 150px 1fr 0; }
+  .panel.right { display: none; }
 }
