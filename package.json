@@ -1,0 +1,9 @@
+{
+  "name": "room-simulator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "引越し用 家具配置2Dシミュレータ",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
